@@ -94,7 +94,7 @@ monchemin='/media/slafont/ec323b73-9bf9-4119-8d2f-3ec27b0660e9/Dropbox (TLD_LOUS
 monfichier=monchemin+'CR3000_rayonnement_ICOS_RAY_20S.dat'
 
 
-monchemin_entete='/media/slafont/ec323b73-9bf9-4119-8d2f-3ec27b0660e9/Dropbox (TLD_LOUSTAU)/Station de Bilos/STEP2'
+monchemin_entete='/media/slafont/ec323b73-9bf9-4119-8d2f-3ec27b0660e9/Dropbox (TLD_LOUSTAU)/Station de Bilos/STEP2/'
 monfichierentete=sitename+'_BMHEADER_201711010000_L02_F01.csv'
 
 pathout="/home/cchipeaux/regional/donnees/sites/SALLES_ICOS/ANNEEENCOURS/tmp/"
@@ -116,13 +116,14 @@ path2=os.path.abspath(monfichier)
 
 fichiercsv=path2[:-3]+"csv"
 fichiertmp=path2[:-3]+"tmp"
-# transfere l'entete dans un fichier temporaire
-macommande="head -4 "+monfichier+" > \'"+fichiertmp+"\'"
-os.system(macommande)
-# recupere la fin du fichier data dans le fichier tmp (pour extraire la derniere journée)
 
-macommande="tail -n 11000 "+monfichier+" >> \'"+fichiertmp+"\'"
-os.system(macommande)
+# version PC
+# transfere l'entete dans un fichier temporaire
+#macommande="head -4 "+monfichier+" > \'"+fichiertmp+"\'"
+#os.system(macommande)
+# recupere la fin du fichier data dans le fichier tmp (pour extraire la derniere journée)
+#macommande="tail -n 11000 "+monfichier+" >> \'"+fichiertmp+"\'"
+#os.system(macommande)
 
 #head using python
 # par souci d'efficacité si le fichier source est gros
@@ -154,9 +155,9 @@ df_data = df_data[~df_data.index.duplicated(keep='last')]
 df_data.index=df_data.index.astype('datetime64[ns]')
 
 # compute sampling interval using the first 3 intervals
-strf=pd.infer_freq(df_data.index)
+freqfile=pd.infer_freq(df_data.index)
 print('frequency')
-if strf[-1]!='S':
+if freqfile[-1]!='S':
     p1=df_data.index[2]-df_data.index[1]
     p2=df_data.index[3]-df_data.index[2]
     p3=df_data.index[4]-df_data.index[3]
@@ -164,6 +165,8 @@ if strf[-1]!='S':
     l = sorted(l)
     #keep the median interval
     freqint=l[2].seconds
+else:
+    freqint=int(freqfile[0:-1])
 print('1er freqint=',freqint)
 
 if freqint >0 and freqint < 60:
@@ -171,7 +174,7 @@ if freqint >0 and freqint < 60:
 if freqint >=60:
     formatdate='%Y%m%d%H%M'
     
-freqfile=str(freqint)+"S"
+#freqfile=str(freqint)+"S"
 
 # generate date vector without gaps 
 di = pd.date_range(start=df_data.index[0],
@@ -227,12 +230,14 @@ for i in range(0, nbfichier+1):
     # 1) entete
     # 2) append data
     # 3 conversion unix to dos 
-    macommande="head -1 "+monfichierentete+" > \'"+pathout+namefichiercsv+"\'"
+    macommande="head -1 "+monchemin_entete+'/'+monfichierentete+" > \'"+pathout+namefichiercsv+"\'"
     os.system(macommande)
     macommande="tail -n +3 "+pathout+namefichiercsvtmp+" >> \'"+pathout+namefichiercsv+"\'"
     os.system(macommande)
-    macommande3="perl -pi -e 's/\\r\\n|\\n|\\r/\\r\\n/g' \'" +pathout+namefichiercsv+"\'"  #conversionunix to dos
-    os.system(macommande3)
+#    if sys.platform=='linux':
+#        macommande3="perl -pi -e 's/\\r\\n|\\n|\\r/\\r\\n/g' \'" +pathout+namefichiercsv+"\'"  #conversionunix to dos
+#        os.system(macommande3)
+
     macommande="rm "+pathout+namefichiercsvtmp
     os.system(macommande)
 
