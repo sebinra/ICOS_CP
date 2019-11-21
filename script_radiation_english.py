@@ -44,7 +44,7 @@ import time
 import sys
 import hashlib  # library need to create md5
 import pycurl # library for curl 
-from io import StringIO
+from io import StringIO,BytesIO
 from os.path import basename
 
 def tail(filename, count=1, offset=1024):
@@ -86,10 +86,11 @@ def head(filename, count=1):
 
 #""" ADAPT THIS PART TO YOUR SITE """"
 sitename="FR-Bil"
-typefic="BM_"  # could be "_ST_"
+typefic="BM_"  # could be "ST_"
 
 carbon_portal_user="FR-Bil"
-carbon_portal_password="XXX"
+#carbon_portal_password="XXX"
+carbon_portal_password="6qiLVmwgmpMp"
 
 
 #matplotlib.rc('figure', figsize=(10, 5))
@@ -254,22 +255,29 @@ commandecurl="curl --upload-file "+fichiericos+" https://"+carbon_portal_user+":
 #universal upload (windows and unix)
 url="https://"+carbon_portal_user+":"+carbon_portal_password+"@data.icos-cp.eu/upload/etc/"+md5+"/"+namefichiercsv
 
+# the equivalent commen of curl upload-file is UPLOAD (put command)
+
 c = pycurl.Curl()
 c.setopt(c.VERBOSE, True)
-c.setopt(c.POST, 1)
+c.setopt(c.UPLOAD, 1)
 c.setopt(c.URL, url)
-c.setopt(c.HTTPHEADER,['Content-Type:text/csv'])
-c.setopt(c.HTTPPOST, [('title', 'test'), (('file', (c.FORM_FILE, fichiericos)))])
-bodyOutput = StringIO()
+#c.setopt(c.HTTPHEADER,['Content-Type:text/csv'])
+#c.setopt(c.HTTPPOST, [('title', 'test'), (('file', (c.FORM_FILE, fichiericos)))])
+file=open(fichiericos)
+c.setopt(c.READDATA, file)
+#c.setopt(c.HTTPPOST, [('fileupload',(c.FORM_FILE, fichiericos))])
+
+bodyOutput = BytesIO()
 headersOutput = StringIO()
 c.setopt(c.WRITEFUNCTION, bodyOutput.write)
 #c.setopt(c.HEADERFUNCTION, headersOutput.write)
 c.perform()
 #
-#print(bodyOutput.getValue())
+print(bodyOutput.getvalue().decode('UTF-8'))
 c.close()
 
-#last part : backup of the generated files
+# *******************************************
+#last part : backup of the generated and uploaded files on local computer 
 print('sauvegarde fichier\n')
 commandesauvegarde="rsync --remove-source-files -avz "+fichiericos+" "+dossiersauvegarde
 #os.system(commandesauvegarde)
