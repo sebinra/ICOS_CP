@@ -24,6 +24,7 @@ input files :
 
 @author: christophe.chipeaux@inra.fr
 adapted by sebastien.lafont@inra.fr
+adapted by jean-baptiste.lily@inra.fr for Hesse site
 """
 
 
@@ -83,21 +84,24 @@ def head(filename, count=1):
         return lines
 
 #""" ADAPT THIS PART TO YOUR SITE """"
-sitename="FR-Bil"
+sitename="FR-Hes"
 typefic="BM_"  # could be "ST_"
 
-carbon_portal_user="FR-Bil"
-#carbon_portal_password="XXX"
+carbon_portal_user="FR-Hes"
+carbon_portal_password="XXX"
 
 
 #matplotlib.rc('figure', figsize=(10, 5))
-monchemin='/home/cchipeaux/regional/donnees/sites/SALLES_ICOS/ANNEEENCOURS/icos/rayonnement/'
-monchemin='/media/slafont/ec323b73-9bf9-4119-8d2f-3ec27b0660e9/Dropbox (TLD_LOUSTAU)/Station de Bilos/data/rayonnement/'
-monfichier=monchemin+'CR3000_rayonnement_ICOS_RAY_20S.dat'
-reference_table='L02_F01'
+monchemin='D:/Docs/Doc_technique/Projets/Hesse/Prog_Christophe_Cportal/' 
+monchemin='/home/slafont/PYTHON/ICOS_CP/JB/Prog_Christophe_Cportal/'
+  #'/home/cchipeaux/regional/donnees/sites/SALLES_ICOS/ANNEEENCOURS/icos/rayonnement/'
+###monchemin='/media/slafont/ec323b73-9bf9-4119-8d2f-3ec27b0660e9/Dropbox (TLD_LOUSTAU)/Station de Bilos/data/rayonnement/'
+monfichier=monchemin+'CR1000_E_fdhesse1_moyennes.dat'  #'CR3000_rayonnement_ICOS_RAY_20S.dat'
+reference_table='L05_F01' #'L02_F01'
 
-monchemin_entete='/media/slafont/ec323b73-9bf9-4119-8d2f-3ec27b0660e9/Dropbox (TLD_LOUSTAU)/Station de Bilos/STEP2/Envoi_fichier_exemple'
-monfichierentete=sitename+'_BMHEADER_201711010000_'+reference_table+'.csv'
+#monchemin_entete='D:/Docs/Doc_technique/Projets/Hesse/Prog_Christophe_Cportal/'  #'/media/slafont/ec323b73-9bf9-4119-8d2f-3ec27b0660e9/Dropbox (TLD_LOUSTAU)/Station de Bilos/STEP2/Envoi_fichier_exemple'
+monchemin_entete=monchemin
+monfichierentete=sitename+'_BMHEADER_201503181400_'+reference_table+'.csv'
 fullheaderfile=os.path.join(monchemin_entete,monfichierentete)
 # for python above 3.4 use patthlib
 #from pathlib import Path
@@ -107,16 +111,17 @@ fullheaderfile=os.path.join(monchemin_entete,monfichierentete)
 #la table de corespondance est un fichier csv qui contient 2 lignes
 # la premiere ligne contient les noms de variables ICOS (dans le meme ordre que dans le fichier HEADER ICOS)
 # la deuxième ligne contient les noms de variables corresondant dans la table du logger. 
-# les variables qui sont dans le logger mais pas dans la table de correspondance seront ignorées
+# les variables qui sont dans le logger mais pas dans la table de correspondance seront ignorées!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 # le code utilise les noms de variables, pas l'ordre des colonnes.
 
 monchemin_table_correspondance=monchemin_entete
 monfichiercorrespondance=sitename+'_tablecorrespondance_'+reference_table+'.csv'
 fullcorrespfile=os.path.join(monchemin_table_correspondance,monfichiercorrespondance)
 
-pathout="/home/cchipeaux/regional/donnees/sites/SALLES_ICOS/ANNEEENCOURS/tmp/"
-pathout="/media/slafont/MSATA/DATA/FR-BIL/DATA_FOR_CP/"
-dossiersauvegarde="/media/slafont/MSATA/DATA/FR-BIL/DATA_FOR_CP/"
+#pathout="D:/Docs/Doc_technique/Projets/Hesse/Prog_Christophe_Cportal/" 
+pathout=monchemin
+###pathout="/media/slafont/MSATA/DATA/FR-BIL/DATA_FOR_CP/"
+dossiersauvegarde="D:/Docs/Doc_technique/Projets/Hesse/Prog_Christophe_Cportal/Sauvegarde/"  #"/media/slafont/MSATA/DATA/FR-BIL/DATA_FOR_CP/"
 
 #""" DO NOT CHANGE AFTER THIS POINT """
 
@@ -140,7 +145,6 @@ icos_header=pd.read_csv(fullheaderfile)
 # read table de correspondance
 tab_corresp=pd.read_csv(fullcorrespfile)
 
-
 # version PC
 
 #head using python
@@ -150,8 +154,6 @@ tab_corresp=pd.read_csv(fullcorrespfile)
 # 11000 ligne avec une frequence de 20 s represente environ 2.5 jours 
 # 11000*20/3600/24
 
-# old version 
-# read new header file instead 
 tmpfile=head(monfichier, count=4)
 tmpfile2=tail(monfichier, count=11000)
 a=tmpfile+tmpfile2
@@ -219,6 +221,7 @@ df_data=df_data.reindex(di, fill_value='NaN')
 #et uniquement dans l'order de tab_corresp
 list_variable=[tab_corresp.values[0,i] for i in range(0,len(tab_corresp.columns))]
 df1 =df_data[list_variable]
+
 #remplace les entetes de df1 par les entetes officiels ICOS
 df1.columns=tab_corresp.columns
 df1=df1.drop(columns='TIMESTAMP')
@@ -254,34 +257,34 @@ for i in range(1, nbfichier):
 # in this configuration only the last one. 
 # add the following part in the for loop to send all the generated files    
 
-md5=hashlib.md5(open(fichiericos,'rb').read()).hexdigest()
-# old upload (unix)
-commandecurl="curl --upload-file "+fichiericos+" https://"+carbon_portal_user+":"+carbon_portal_password+"@data.icos-cp.eu/upload/etc/"+md5+"/"+namefichiercsv
-#os.system(commandecurl)  # to be UNCOMMENTED 
-
-#universal upload (windows and unix)
-url="https://"+carbon_portal_user+":"+carbon_portal_password+"@data.icos-cp.eu/upload/etc/"+md5+"/"+namefichiercsv
-
-# the equivalent commen of curl upload-file is UPLOAD (put command)
-
-c = pycurl.Curl()
-c.setopt(c.VERBOSE, True)
-c.setopt(c.UPLOAD, 1)
-c.setopt(c.URL, url)
-#c.setopt(c.HTTPHEADER,['Content-Type:text/csv'])
-#c.setopt(c.HTTPPOST, [('title', 'test'), (('file', (c.FORM_FILE, fichiericos)))])
-file=open(fichiericos)
-c.setopt(c.READDATA, file)
-#c.setopt(c.HTTPPOST, [('fileupload',(c.FORM_FILE, fichiericos))])
-
-bodyOutput = BytesIO()
-headersOutput = StringIO()
-c.setopt(c.WRITEFUNCTION, bodyOutput.write)
-#c.setopt(c.HEADERFUNCTION, headersOutput.write)
-c.perform()
+#md5=hashlib.md5(open(fichiericos,'rb').read()).hexdigest()
+## old upload (unix)
+#commandecurl="curl --upload-file "+fichiericos+" https://"+carbon_portal_user+":"+carbon_portal_password+"@data.icos-cp.eu/upload/etc/"+md5+"/"+namefichiercsv
+##os.system(commandecurl)  # to be UNCOMMENTED 
 #
-print(bodyOutput.getvalue().decode('UTF-8'))
-c.close()
+##universal upload (windows and unix)
+#url="https://"+carbon_portal_user+":"+carbon_portal_password+"@data.icos-cp.eu/upload/etc/"+md5+"/"+namefichiercsv
+#
+## the equivalent command of curl upload-file is UPLOAD (put command)
+#
+#c = pycurl.Curl()
+#c.setopt(c.VERBOSE, True)
+#c.setopt(c.UPLOAD, 1)
+#c.setopt(c.URL, url)
+##c.setopt(c.HTTPHEADER,['Content-Type:text/csv'])
+##c.setopt(c.HTTPPOST, [('title', 'test'), (('file', (c.FORM_FILE, fichiericos)))])
+#file=open(fichiericos)
+#c.setopt(c.READDATA, file)
+##c.setopt(c.HTTPPOST, [('fileupload',(c.FORM_FILE, fichiericos))])
+#
+#bodyOutput = BytesIO()
+#headersOutput = StringIO()
+#c.setopt(c.WRITEFUNCTION, bodyOutput.write)
+##c.setopt(c.HEADERFUNCTION, headersOutput.write)
+#c.perform()
+##
+#print(bodyOutput.getvalue().decode('UTF-8'))
+#c.close()
 
 # *******************************************
 #last part : backup of the generated and uploaded files on local computer 
