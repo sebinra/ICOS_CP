@@ -5,13 +5,13 @@ Created on Tue Mar 26 09:39:55 2019
 
 take a datalogger table. 
 adapt the table to fullfill ICOS requirement :
-        use a correspondace table between the ICOS header nameand the datalloger header name
+        use a correspondance table between the ICOS header nameand the datalogger header name
         generate TIMESTAMP in the correct format 
         complete missing row record
         upload the file to the carbon portal
         save a local copy of the file
 
-currently works on  a linux or windows PC 
+currently works on  a linux or windows computer
 
 gestion du temps : 
     actuellement genere le fichier ICOS pour XX jours   (tous les jours disponibles)
@@ -19,18 +19,18 @@ gestion du temps :
     
 input files : 
     data logger file
-    ICOS header file (with the columns in the same order than the data logger file)
+    ICOS header file (with the columns in the same order as in the data logger file)
 
 
-@author: christophe.chipeaux@inra.fr
-adapted by sebastien.lafont@inra.fr
+@author: christophe.chipeaux@inrae.fr
+adapted by sebastien.lafont@inrae.fr
 """
 
 
 #import matplotlib
 #matplotlib.use('Agg')
 import numpy as np
-import pandas as pd  #use to read the data file, and complete  missing rows
+import pandas as pd  #use to read the data file, and to complete the missing rows
 
 #from datetime import datetime,timedelta
 
@@ -42,7 +42,7 @@ import time
 import sys
 import hashlib  # library need to create md5
 import pycurl # library for curl 
-from io import StringIO,BytesIO
+from io import StringIO, BytesIO
 from os.path import basename
 
 def tail(filename, count=1, offset=1024):
@@ -228,7 +228,7 @@ df1.index.name='TIMESTAMP'
 datetimedepart=df1.index[1].strftime('%Y-%m-%d %H:%M:%S')
 datefinfichierjour=df1.index[-1].strftime('%Y-%m-%d %H:%M:%S')
 
-# create a daily index
+# create a daily index to generate daily files
 indexbyday=df1.resample('D').sum().index
 indexbyday=indexbyday.strftime('%Y-%m-%d %H:%M:%S')
 nbfichier=len(indexbyday)-2   #on enleve le premier et le dernier
@@ -284,7 +284,7 @@ print(bodyOutput.getvalue().decode('UTF-8'))
 c.close()
 
 # *******************************************
-#last part : backup of the generated and uploaded files on local computer 
+#last part : backup of the generated and uploaded files on the local computer 
 print('sauvegarde fichier\n')
 commandesauvegarde="rsync --remove-source-files -avz "+fichiericos+" "+dossiersauvegarde
 #os.system(commandesauvegarde)
