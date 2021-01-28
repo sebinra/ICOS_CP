@@ -22,6 +22,7 @@ input files :
     ICOS header file (with the columns in the same order as in the data logger file)
 
 
+version 01/2021
 @author: christophe.chipeaux@inrae.fr
 adapted by sebastien.lafont@inrae.fr
 """
@@ -39,13 +40,23 @@ from math import *
 import matplotlib.pyplot as plt #pour la visualisation (http://pandas.pydata.org/pandas-docs/stable/visualization.html)
 
 import time
-import sys
+import sys,os
 import hashlib  # library need to create md5
 import pycurl # library for curl  attention n'existe pas par defaut faire python 3.4 pip install pycurl
 from io import StringIO,BytesIO
 from os.path import basename
 import shutil
 import glob
+
+# Class which holds a file reference and the read callback
+class FileReader:
+    def __init__(self, fp):
+        self.fp = fp
+    def read_callback(self, size):
+        return self.fp.read(size)
+
+
+
 def tail(filename, count=1, offset=1024):
     """
     A more efficent way of getting the last few lines of a file.
@@ -294,24 +305,38 @@ if __name__=='__main__':
     #os.system(commandecurl)  # to be UNCOMMENTED
     #universal upload (windows and unix)
     url="https://"+carbon_portal_user+":"+carbon_portal_password+"@data.icos-cp.eu/upload/etc/"+md5+"/"+namefichiercsv
+    print('Uploading file %s to url %s' % (filename, url))
     # the equivalent commen of curl upload-file is UPLOAD (put command)
     c = pycurl.Curl()
     c.setopt(c.VERBOSE, True)
     c.setopt(c.UPLOAD, 1)
     c.setopt(c.URL, url)
+    filename=fichiericos
+    if 1:
+        c.setopt(pycurl.READFUNCTION, FileReader(open(filename, 'rb')).read_callback)
+    else:
+        c.setopt(pycurl.READFUNCTION, open(filename, 'rb').read)
+
+# Set size of file to be uploaded.
+    filesize = os.path.getsize(filename)
+    c.setopt(pycurl.INFILESIZE, filesize)
+
+
+
     #c.setopt(c.HTTPHEADER,['Content-Type:text/csv'])
     #c.setopt(c.HTTPPOST, [('title', 'test'), (('file', (c.FORM_FILE, fichiericos)))])
-    file=open(fichiericos)
-    c.setopt(c.READDATA, file)
+    #file=open(fichiericos)
+    #c.setopt(c.READDATA, file)
     #c.setopt(c.HTTPPOST, [('fileupload',(c.FORM_FILE, fichiericos))])
 
-    bodyOutput = BytesIO()
-    headersOutput = StringIO()
-    c.setopt(c.WRITEFUNCTION, bodyOutput.write)
+    #bodyOutput = BytesIO()
+    #headersOutput = StringIO()
+    #c.setopt(c.WRITEFUNCTION, bodyOutput.write)
     #c.setopt(c.HEADERFUNCTION, headersOutput.write)
     c.perform()
     #
-    print(bodyOutput.getvalue().decode('UTF-8'))
+    print('Uploading file %s to url %s' % (filename, url))
+    #print(bodyOutput.getvalue().decode('UTF-8'))
     c.close()
 
     # *******************************************

@@ -28,23 +28,21 @@ adapted by sebastien.lafont@inra.fr
 
 
 
-import matplotlib
+#import matplotlib
 #matplotlib.use('Agg')
 import pandas as pd  #use to read the data file, and complete  missing rows
-import numpy as np
-from datetime import datetime,timedelta
-import numpy
+#import numpy as np
+#from datetime import datetime,timedelta
+
 import os.path
 from math import *
 import matplotlib.pyplot as plt #pour la visualisation (http://pandas.pydata.org/pandas-docs/stable/visualization.html)
 import time
-import csv
 import sys
-from os.path import basename
-from matplotlib.ticker import AutoMinorLocator
-from matplotlib.ticker import MultipleLocator
-from matplotlib.dates import DayLocator, HourLocator, DateFormatter, drange
 import hashlib  # library need to create md5
+import pycurl # library for curl 
+from io import StringIO
+from os.path import basename
 
 def tail(filename, count=1, offset=1024):
     """
@@ -85,21 +83,38 @@ def head(filename, count=1):
 
 #""" ADAPT THIS PART TO YOUR SITE """"
 sitename="FR-Bil"
+typefic="BM_"  # could be "_ST_"
 
 carbon_portal_user="FR-Bil"
-carbon_portal_password="XXX"
+#carbon_portal_password="XXX"
+carbon_portal_password="6qiLVmwgmpMp"
 #matplotlib.rc('figure', figsize=(10, 5))
 monchemin='/home/cchipeaux/regional/donnees/sites/SALLES_ICOS/ANNEEENCOURS/icos/rayonnement/'
 monchemin='/media/slafont/ec323b73-9bf9-4119-8d2f-3ec27b0660e9/Dropbox (TLD_LOUSTAU)/Station de Bilos/data/rayonnement/'
 monfichier=monchemin+'CR3000_rayonnement_ICOS_RAY_20S.dat'
+reference_table='L02_F01'
 
+monchemin_entete='/media/slafont/ec323b73-9bf9-4119-8d2f-3ec27b0660e9/Dropbox (TLD_LOUSTAU)/Station de Bilos/STEP2/Envoi_fichier_exemple'
+monfichierentete=sitename+'_BMHEADER_201711010000_'+reference_table+'.csv'
+fullheaderfile=os.path.join(monchemin_entete,monfichierentete)
+# for python above 3.4 use patthlib
+#from pathlib import Path
+# datafolder=Path(monchemin_entete)
+#fullheaderfile = data_folder / monfichierentete
 
-monchemin_entete='/media/slafont/ec323b73-9bf9-4119-8d2f-3ec27b0660e9/Dropbox (TLD_LOUSTAU)/Station de Bilos/STEP2/'
-monfichierentete=sitename+'_BMHEADER_201711010000_L02_F01.csv'
+#la table de corespondance est un fichier csv qui contient 2 lignes
+# la premiere ligne contient les noms de variables ICOS (dans le meme ordre que dans le fichier HEADER ICOS)
+# la deuxième ligne contient les noms de variables corresondant dans la table du logger. 
+# les variables qui sont dans le logger mais pas dans la table de correspondance seront ignorées
+# le code utilise les noms de variables, pas l'ordre des colonnes.
+
+monchemin_table_correspondance=monchemin_entete
+monfichiercorrespondance=sitename+'_tablecorrespondance_'+reference_table+'.csv'
+fullcorrespfile=os.path.join(monchemin_table_correspondance,monfichiercorrespondance)
 
 pathout="/home/cchipeaux/regional/donnees/sites/SALLES_ICOS/ANNEEENCOURS/tmp/"
-pathout="/media/slafont/MSATA/DATA/FR-BIL/DATA_FOR_CP"
-dossiersauvegarde="/media/slafont/MSATA/DATA/FR-BIL/DATA_FOR_CP"
+pathout="/media/slafont/MSATA/DATA/FR-BIL/DATA_FOR_CP/"
+dossiersauvegarde="/media/slafont/MSATA/DATA/FR-BIL/DATA_FOR_CP/"
 
 #""" DO NOT CHANGE AFTER THIS POINT """
 
@@ -117,6 +132,13 @@ path2=os.path.abspath(monfichier)
 fichiercsv=path2[:-3]+"csv"
 fichiertmp=path2[:-3]+"tmp"
 
+# read ICOS header file
+icos_header=pd.read_csv(fullheaderfile)
+
+# read table de correspondance
+tab_corresp=pd.read_csv(fullcorrespfile)
+
+
 # version PC
 # transfere l'entete dans un fichier temporaire
 #macommande="head -4 "+monfichier+" > \'"+fichiertmp+"\'"
@@ -132,7 +154,8 @@ fichiertmp=path2[:-3]+"tmp"
 # 11000 ligne avec une frequence de 20 s represente environ 2.5 jours 
 # 11000*20/3600/24
 
-
+# old version 
+# read new header file instead 
 tmpfile=head(monfichier, count=4)
 tmpfile2=tail(monfichier, count=11000)
 a=tmpfile+tmpfile2
@@ -154,9 +177,12 @@ df_data  = df_data.drop_duplicates()
 df_data = df_data[~df_data.index.duplicated(keep='last')]
 df_data.index=df_data.index.astype('datetime64[ns]')
 
+
 # compute sampling interval using the first 3 intervals
 freqfile=pd.infer_freq(df_data.index)
 print('frequency')
+print(freqfile)
+# if automatic detection do not work use manual detection
 if freqfile[-1]!='S':
     p1=df_data.index[2]-df_data.index[1]
     p2=df_data.index[3]-df_data.index[2]
@@ -183,9 +209,17 @@ di = pd.date_range(start=df_data.index[0],
 
 df_data=df_data.reindex(di, fill_value='NaN')
 
+# conserve uniquement les variables dans tab_corresp
+#et uniquement dans l'order de tab_corresp
+list_variable=[tab_corresp.values[0,i] for i in range(0,len(tab_corresp.columns))]
+df1 =df_data[list_variable]
+#remplace les entetes de df1 par les entetes officiels ICOS
+df1.columns=tab_corresp.columns
+
+# old method
 # remove 2 first columns : RECORD and icostimestamps
 # same index than df_data;
-df1 = df_data.iloc[:,2:]
+#df1 = df_data.iloc[:,2:]
 
 
 #df1.index=df1.index.astype('datetime64[ns]')
@@ -217,40 +251,67 @@ nbfichier=len(indexbyday)-2   #on enleve le premier et le dernier
 #os.system(macommande)
 
 #print(len(fichierjour))
-for i in range(0, nbfichier+1):
+# skip the first day of the extraction that could be incomplete
+# start i at one
+
+#for i in range(1, nbfichier+1):
+# to test
+for i in range(1, nbfichier):
     fichierjour=df1.loc[indexbyday[i]:indexbyday[i+1]]
-    print(len(fichierjour))
+    print('lengh=',len(fichierjour))
     datefic=fichierjour.index[0].strftime('%Y%m%d')
-    print(datefic)
+    print('date=',datefic)
     fichierjour.index=fichierjour.index.strftime(formatdate)
-    namefichiercsvtmp=entetefic+datefic+extension+".tmp"
-    namefichiercsv=entetefic+datefic+extension+".csv"
-    fichierjour.to_csv(pathout+namefichiercsvtmp)
+    namefichiercsvtmp=entetefic+typefic+datefic+extension+".tmp"
+    namefichiercsv=entetefic+typefic+datefic+extension+".csv"
+    fichierjour.to_csv(pathout+namefichiercsv)
     # ecrit le fichier en 2 parties 
     # 1) entete
     # 2) append data
     # 3 conversion unix to dos 
-    macommande="head -1 "+monchemin_entete+'/'+monfichierentete+" > \'"+pathout+namefichiercsv+"\'"
-    os.system(macommande)
-    macommande="tail -n +3 "+pathout+namefichiercsvtmp+" >> \'"+pathout+namefichiercsv+"\'"
-    os.system(macommande)
-#    if sys.platform=='linux':
-#        macommande3="perl -pi -e 's/\\r\\n|\\n|\\r/\\r\\n/g' \'" +pathout+namefichiercsv+"\'"  #conversionunix to dos
-#        os.system(macommande3)
+    #fullheadname
+    #macommande='head -1 "'+ os.path.join(monchemin_entete,monfichierentete)+'" > \''+pathout+namefichiercsv+'\''
+    #print('macommande1 ',macommande)
+    #os.system(macommande)
+    #macommande="tail -n +3 "+pathout+namefichiercsvtmp+" >> \'"+pathout+namefichiercsv+"\'"
+    #os.system(macommande)
+    #print('macommande2 ',macommande)
+    #if sys.platform=='linux':
+    #    macommande3="perl -pi -e 's/\\r\\n|\\n|\\r/\\r\\n/g' \'" +pathout+namefichiercsv+"\'"  #conversionunix to dos
+    #    os.system(macommande3)
 
-    macommande="rm "+pathout+namefichiercsvtmp
-    os.system(macommande)
+    #macommande="rm "+pathout+namefichiercsvtmp
+    #os.system(macommande)
 
 #TO DO PRINT CORRESPONDANCE OLD ENTETE NEW ENTETE
 
 # envoie le nouveau fichier 
 fichiericos=pathout+namefichiercsv
 md5=hashlib.md5(open(fichiericos,'rb').read()).hexdigest()
+# old upload (unix)
 commandecurl="curl --upload-file "+fichiericos+" https://"+carbon_portal_user+":"+carbon_portal_password+"@data.icos-cp.eu/upload/etc/"+md5+"/"+namefichiercsv
 #os.system(commandecurl)  # to be UNCOMMENTED 
 
+#universal upload (windows and unix)
+url="https://"+carbon_portal_user+":"+carbon_portal_password+"@data.icos-cp.eu/upload/etc/"+md5+"/"+namefichiercsv
+
+c = pycurl.Curl()
+c.setopt(c.VERBOSE, True)
+c.setopt(c.POST, 1)
+c.setopt(c.URL, url)
+c.setopt(c.HTTPPOST, [('title', 'test'), (('file', (c.FORM_FILE, fichiericos)))])
+bodyOutput = StringIO()
+headersOutput = StringIO()
+c.setopt(c.WRITEFUNCTION, bodyOutput.write)
+#c.setopt(c.HEADERFUNCTION, headersOutput.write)
+c.perform()
+#
+print(bodyOutput.getValue())
+c.close()
+
 # fait une sauvegarde
+print('sauvegarde fichier\n')
 commandesauvegarde="rsync --remove-source-files -avz "+fichiericos+" "+dossiersauvegarde
-os.system(commandesauvegarde)
+#os.system(commandesauvegarde)
 #commandesup="rm "+pathout+"*"+namefichiercsv[-12:]
 #os.system(commandesup)

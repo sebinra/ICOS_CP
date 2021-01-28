@@ -88,8 +88,7 @@ typefic="BM_"  # could be "ST_"
 
 carbon_portal_user="FR-Bil"
 #carbon_portal_password="XXX"
-
-
+carbon_portal_password="6qiLVmwgmpMp"
 #matplotlib.rc('figure', figsize=(10, 5))
 monchemin='/home/cchipeaux/regional/donnees/sites/SALLES_ICOS/ANNEEENCOURS/icos/rayonnement/'
 monchemin='/media/slafont/ec323b73-9bf9-4119-8d2f-3ec27b0660e9/Dropbox (TLD_LOUSTAU)/Station de Bilos/data/rayonnement/'
@@ -146,7 +145,7 @@ tab_corresp=pd.read_csv(fullcorrespfile)
 #head using python
 # par souci d'efficacité si le fichier source est gros
 # Cette partie créer un fichier temporaire qui contient 
-#seulement une partie (la fin) du fichier original.
+# seulement une partie (la fin) du fichier original.
 # 11000 ligne avec une frequence de 20 s represente environ 2.5 jours 
 # 11000*20/3600/24
 
@@ -262,7 +261,7 @@ commandecurl="curl --upload-file "+fichiericos+" https://"+carbon_portal_user+":
 #universal upload (windows and unix)
 url="https://"+carbon_portal_user+":"+carbon_portal_password+"@data.icos-cp.eu/upload/etc/"+md5+"/"+namefichiercsv
 
-# the equivalent commen of curl upload-file is UPLOAD (put command)
+# the equivalent command of curl upload-file is UPLOAD (put command)
 
 c = pycurl.Curl()
 c.setopt(c.VERBOSE, True)
