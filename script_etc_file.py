@@ -133,19 +133,20 @@ def head(filename, count=1):
 #'/Users/christophec/Dropbox (TLD_LOUSTAU)/Station de Bilos/STEP2/Envoi_fichier_exemple/FR-Bil_BMHEADER_201711010000_L02_F01.csv'
 
 #test
-abspathmonfichier='/DATA/BILOS/RAW/ICOS/ANNEEENCOURS/icos/rayonnement/CR3000_rayonnement_ICOS_RAY_20S.dat'
-abspathmonfichierentete='/DATA/BILOS/RAW/ICOS/ANNEEENCOURS/entete/FR-Bil_BMHEADER_201711010000_L02_F01.csv'
-pathout='/DATA/BILOS/RAW/ICOS/ANNEEENCOURS/tmp2/'
-dossiersauvegarde='/DATA/BILOS/RAW/ICOS/ANNEEENCOURS/icos/FICHIERCP2/'
+abspathmonfichier='/home/slafont/PYTHON/ICOS_CP/CR3000_test.csv'
+abspathmonfichierentete='FR-Bil_BMHEADER_201711010000_L02_F01.csv'
+pathout='tmp2/'
+dossiersauvegarde='FICHIERCP2/'
 carbon_portal_password='toto'
 
 if __name__=='__main__':
     argz=sys.argv[1:]
-    abspathmonfichier=argz[0]        #'/media/slafont/ec323b73-9bf9-4119-8d2f-3ec27b0660e9/Dropbox (TLD_LOUSTAU)/Station de Bilos/data/rayonnement/CR3000_rayonnement_ICOS_RAY_20S.dat'
-    abspathmonfichierentete=argz[1]  #'/media/slafont/ec323b73-9bf9-4119-8d2f-3ec27b0660e9/Dropbox (TLD_LOUSTAU)/Station de Bilos/STEP2/Envoi_fichier_exemple/FR-Bil_BMHEADER_201711010000_L02_F01.csv'
-    pathout=argz[2]                 #"/media/slafont/MSATA/DATA/FR-BIL/DATA_FOR_CP/"
-    dossiersauvegarde=argz[3]       #"/media/slafont/MSATA/DATA/FR-BIL/DATA_FOR_CP/"
-    carbon_portal_password=argz[4]       #"XXX"
+    if len(argz)>1:
+        abspathmonfichier=argz[0]        #'/media/slafont/ec323b73-9bf9-4119-8d2f-3ec27b0660e9/Dropbox (TLD_LOUSTAU)/Station de Bilos/data/rayonnement/CR3000_rayonnement_ICOS_RAY_20S.dat'
+        abspathmonfichierentete=argz[1]  #'/media/slafont/ec323b73-9bf9-4119-8d2f-3ec27b0660e9/Dropbox (TLD_LOUSTAU)/Station de Bilos/STEP2/Envoi_fichier_exemple/FR-Bil_BMHEADER_201711010000_L02_F01.csv'
+        pathout=argz[2]                 #"/media/slafont/MSATA/DATA/FR-BIL/DATA_FOR_CP/"
+        dossiersauvegarde=argz[3]       #"/media/slafont/MSATA/DATA/FR-BIL/DATA_FOR_CP/"
+        carbon_portal_password=argz[4]       #"XXX"
 
 #""" DO NOT CHANGE AFTER THIS POINT """
     monchemin=os.path.dirname(abspathmonfichier)                #'/media/slafont/ec323b73-9bf9-4119-8d2f-3ec27b0660e9/Dropbox (TLD_LOUSTAU)/Station de Bilos/data/rayonnement'
@@ -254,7 +255,7 @@ if __name__=='__main__':
     di = pd.date_range(start=df_data.index[0],end=df_data.index[-1],freq=freqfile)
     df_data=df_data.reindex(di, fill_value='NaN')
     # conserve uniquement les variables dans tab_corresp
-    #et uniquement dans l'order de tab_corresp
+    #et uniquement dans l'ordre de tab_corresp
     list_variable=[tab_corresp.values[0,i] for i in range(0,len(tab_corresp.columns))]
     df1 =df_data[list_variable]
     #remplace les entetes de df1 par les entetes officiels ICOS
@@ -267,7 +268,7 @@ if __name__=='__main__':
     # create a daily index
     indexbyday=df1.resample('D').sum().index
     indexbyday=indexbyday.strftime('%Y-%m-%d %H:%M:%S')
-    nbfichier=len(indexbyday)-2   #on enleve le premier et le dernier
+    nbfichier=len(indexbyday)-2   #on enleve le premier et le dernier jour
 
     #print(len(fichierjour))
     # skip the first day of the extraction that could be incomplete
@@ -296,8 +297,11 @@ if __name__=='__main__':
         os.remove(pathout+namefichiercsvtmp)
 
     # send the new file
-    # in this configuration only the last one.
+    # in this configuration only the last fileone.
     # add the following part in the for loop to send all the generated files
+
+    #in this configuration the file send to the ETC is the file corresponding to the 
+    #day before the last line of the datalogger file
 
     md5=hashlib.md5(open(fichiericos,'rb').read()).hexdigest()
     # old upload (unix)
@@ -305,13 +309,14 @@ if __name__=='__main__':
     #os.system(commandecurl)  # to be UNCOMMENTED
     #universal upload (windows and unix)
     url="https://"+carbon_portal_user+":"+carbon_portal_password+"@data.icos-cp.eu/upload/etc/"+md5+"/"+namefichiercsv
-    print('Uploading file %s to url %s' % (filename, url))
+    
     # the equivalent commen of curl upload-file is UPLOAD (put command)
     c = pycurl.Curl()
     c.setopt(c.VERBOSE, True)
     c.setopt(c.UPLOAD, 1)
     c.setopt(c.URL, url)
     filename=fichiericos
+    print('Uploading file %s to url %s' % (filename, url))
     if 1:
         c.setopt(pycurl.READFUNCTION, FileReader(open(filename, 'rb')).read_callback)
     else:
