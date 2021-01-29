@@ -12,6 +12,7 @@ The input files are :
 
 The script :
 * read the datalogger file
+* detect the time frequency of the acquisition to adapt the TIMESTAMP format to ETC standart
 * keep only the last days of the file (to save some computation)
 * create a continuous dataset (no time gap) with a timestamp format compliant with ETC
 * rename and order the columns according to the ETC header file
