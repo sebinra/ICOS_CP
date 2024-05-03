@@ -1,7 +1,7 @@
 # ICOS_CP
 prepare and send met files to Carbon portal
 
-This script has been prepared by Christophe Chippeau for the Salles Bilos ICOS site.
+This script has been prepared by Christophe Chipeaux for the Salles Bilos ICOS site.
 It has been generalized by Sébastien Lafont.
 
 The input files are : 
